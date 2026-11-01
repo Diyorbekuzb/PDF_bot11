@@ -3,18 +3,69 @@ import telebot
 from aiohttp import web
 import asyncio
 import threading
+from PIL import Image
+import io
 
-# Token to'g'ridan-to'g'ri kiritildi
 TOKEN = "9197758020:AAEo4p1XD5v6JdNttltLYcgx42hGec7oFNg"
 bot = telebot.TeleBot(TOKEN)
 
+# Foydalanuvchi rasmlarini vaqtincha yig'ib turish uchun lug'at
+user_images = {}
+
 @bot.message_handler(commands=['start', 'help'])
 def send_welcome(message):
-    bot.reply_to(message, "Salom! Men rasmlaringizni bitta PDF faylga birlashtirib beruvchi botman. Menga rasmlarni yuboring!")
+    bot.reply_to(message, "Salom! Menga PDF qilmoqchi bo'lgan rasmlaringizni ketma-ket yuboring. Barchasini yuborib bo'lgach /done buyrug'ini bosing.")
 
 @bot.message_handler(content_types=['photo'])
 def handle_photos(message):
-    bot.reply_to(message, "Rasmingiz qabul qilindi! PDF yaratish jarayoni...")
+    user_id = message.from_user.id
+    
+    # Agar foydalanuvchi uchun ro'yxat ochilmagan bo'lsa, ochamiz
+    if user_id not in user_images:
+        user_images[user_id] = []
+        
+    # Rasmning eng katta hajmini olamiz
+    file_info = bot.get_file(message.photo[-1].file_id)
+    downloaded_file = bot.download_file(file_info.file_path)
+    
+    # Rasmni vaqtincha xotirada saqlaymiz
+    image_stream = io.BytesIO(downloaded_file)
+    image = Image.open(image_stream)
+    
+    # RGB formatga o'tkazamiz (PDF uchun shart)
+    if image.mode != 'RGB':
+        image = image.convert('RGB')
+        
+    user_images[user_id].append(image)
+    bot.reply_to(message, f"Rasm qabul qilindi! Jami rasmlar: {len(user_images[user_id])}. Yana yuboring yoki /done ni bosing.")
+
+@bot.message_handler(commands=['done'])
+def generate_pdf(message):
+    user_id = message.from_user.id
+    
+    if user_id not in user_images or not user_images[user_id]:
+        bot.reply_to(message, "Siz hali birorta rasm yubormadingiz!")
+        return
+        
+    bot.reply_to(message, "PDF fayl tayyorlanmoqda, biroz kuting...")
+    
+    images = user_images[user_id]
+    pdf_stream = io.BytesIO()
+    
+    # Birinchi rasmni olib, qolganlarini unga qo'shamiz va PDF qilamiz
+    images[0].save(
+        pdf_stream,
+        format="PDF",
+        save_all=True,
+        append_images=images[1:]
+    )
+    pdf_stream.seek(0)
+    
+    # Faylni foydalanuvchiga yuboramiz
+    bot.send_document(message.chat.id, document=pdf_stream, visible_file_name="converted_document.pdf")
+    
+    # Xotirani tozalaymiz
+    del user_images[user_id]
 
 # --- AIOHTTP WEB SERVER (UptimeRobot uchun) ---
 async def handle(request):
@@ -36,11 +87,9 @@ def start_web_server():
     loop.run_forever()
 
 if __name__ == '__main__':
-    # Veb-serverni alohida oqimda ishga tushiramiz
     server_thread = threading.Thread(target=start_web_server)
     server_thread.daemon = True
     server_thread.start()
     
-    # Botni polling rejimida ishga tushiramiz
     print("Bot ishga tushdi...")
     bot.infinity_polling()
