@@ -7,12 +7,11 @@
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background: #f0f2f5; padding: 12px; color: #222; padding-bottom: 80px; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background: #f0f2f5; padding: 12px; color: #222; padding-bottom: 90px; }
         
         .header { text-align: center; margin-bottom: 15px; }
         .header h3 { font-size: 18px; color: #2c3e50; }
 
-        /* Sahifalar ketma-ketligi (Lenta ko'rinishi) */
         #pagesContainer { display: flex; flex-direction: column; gap: 12px; margin-bottom: 15px; }
 
         .page-card { background: #fff; border-radius: 12px; padding: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); position: relative; }
@@ -22,22 +21,19 @@
         .image-wrapper img { max-width: 100%; max-height: 100%; object-fit: contain; }
 
         .tools-bar { display: flex; gap: 6px; margin-bottom: 8px; }
-        .tool-btn { background: #f0f2f5; border: none; padding: 6px 10px; border-radius: 6px; font-size: 11px; font-weight: 600; cursor: pointer; color: #444; flex: 1; text-align: center; }
+        .tool-btn { background: #f0f2f5; border: none; padding: 8px 10px; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; color: #444; flex: 1; text-align: center; }
         .tool-btn.danger { background: #ffebee; color: #d32f2f; }
 
         .text-input { width: 100%; padding: 8px 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 13px; outline: none; }
         .text-input:focus { border-color: #0088cc; }
 
-        /* Pastki fixed panel (Fayl nomi va saqlash) */
         .footer-panel { position: fixed; bottom: 0; left: 0; right: 0; background: #fff; padding: 10px 15px; box-shadow: 0 -4px 10px rgba(0,0,0,0.08); border-top-left-radius: 16px; border-top-right-radius: 16px; display: flex; flex-direction: column; gap: 8px; z-index: 100; }
         
         .footer-row { display: flex; gap: 8px; align-items: center; }
         .footer-row input { flex: 1; padding: 10px; border: 1px solid #ccc; border-radius: 8px; font-size: 13px; }
         
-        .add-file-btn { background: #e8f5e9; color: #2e7d32; border: 1px solid #a5d6a7; padding: 10px 14px; border-radius: 8px; font-weight: bold; font-size: 13px; cursor: pointer; text-align: center; white-space: nowrap; }
-        .save-pdf-btn { background: #229ed9; color: white; border: none; padding: 12px; border-radius: 8px; font-weight: bold; font-size: 14px; width: 100%; text-align: center; box-shadow: 0 2px 5px rgba(34,158,217,0.3); }
-
-        input[type="file"] { display: none; }
+        .add-file-btn { background: #e8f5e9; color: #2e7d32; border: 1px solid #a5d6a7; padding: 10px 14px; border-radius: 8px; font-weight: bold; font-size: 13px; cursor: pointer; text-align: center; white-space: nowrap; display: inline-block; }
+        .save-pdf-btn { background: #229ed9; color: white; border: none; padding: 12px; border-radius: 8px; font-weight: bold; font-size: 14px; width: 100%; text-align: center; box-shadow: 0 2px 5px rgba(34,158,217,0.3); cursor: pointer; }
     </style>
 </head>
 <body>
@@ -46,19 +42,15 @@
         <h3>📄 PDF Tahrirlovchi</h3>
     </div>
 
-    <!-- Barcha sahifalar ketma-ket chiqadigan joy -->
-    <div id="pagesContainer">
-        <!-- Dinamik sahifalar shu yerga qo'shiladi -->
-    </div>
+    <div id="pagesContainer"></div>
 
-    <!-- Pastki qismdagi boshqaruv paneli -->
+    <!-- Yana rasm yuklash uchun yashirin input -->
+    <input type="file" id="fileInput" accept="image/*" style="display:none;" onchange="uploadNewImage(event)">
+
     <div class="footer-panel">
         <div class="footer-row">
             <input type="text" id="pdfFileName" value="hujjat.pdf" placeholder="Fayl nomi...">
-            <label class="add-file-btn">
-                + Rasm Qo'shish
-                <input type="file" accept="image/*" onchange="uploadNewImage(event)">
-            </label>
+            <button class="add-file-btn" onclick="document.getElementById('fileInput').click()">+ Rasm Qo'shish</button>
         </div>
         <button class="save-pdf-btn" onclick="submitPdf()">📥 PDF Yaratish va Yuborish</button>
     </div>
@@ -67,16 +59,14 @@
         let tg = window.Telegram.WebApp;
         tg.expand();
 
-        let pages = [
-            { id: 1, src: "https://via.placeholder.com/300x400?text=Sahifa+1", text: "", rotation: 0 }
-        ];
+        let pages = [];
 
         function renderPages() {
             const container = document.getElementById('pagesContainer');
             container.innerHTML = '';
 
             if (pages.length === 0) {
-                container.innerHTML = '<div style="text-align:center; color:#777; padding: 20px;">Sahifalar yo\'q. Pastdan rasm qo\'shing.</div>';
+                container.innerHTML = '<div style="text-align:center; color:#777; padding: 30px; background:#fff; border-radius:12px;">Hozircha rasmlar yo\'q.<br><br>Pastdagi <b>"+ Rasm Qo\'shish"</b> tugmasini bosib rasm yuklang!</div>';
                 return;
             }
 
@@ -133,12 +123,20 @@
         }
 
         function submitPdf() {
+            if (pages.length === 0) {
+                alert("Iltimos, kamida bitta rasm qo'shing!");
+                return;
+            }
+
             const fileName = document.getElementById('pdfFileName').value || "hujjat.pdf";
+            
+            // Telegram botga ma'lumot yuborish
             tg.sendData(JSON.stringify({
                 action: "create_pdf",
                 fileName: fileName,
                 pages: pages
             }));
+            
             tg.close();
         }
 
