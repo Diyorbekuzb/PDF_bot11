@@ -100,8 +100,7 @@
                         let width = img.width;
                         let height = img.height;
                         
-                        // Hajmini maqbul darajaga keltirish (server qotib qolmasligi uchun)
-                        const MAX_WIDTH = 1000;
+                        const MAX_WIDTH = 900;
                         if (width > MAX_WIDTH) {
                             height *= MAX_WIDTH / width;
                             width = MAX_WIDTH;
@@ -131,13 +130,42 @@
             }
 
             const fileName = document.getElementById('pdfFileName').value || "hujjat.pdf";
-            
-            tg.sendData(JSON.stringify({
-                fileName: fileName,
-                pages: pages
-            }));
-            
-            tg.close();
+            const userId = tg.initDataUnsafe?.user?.id;
+
+            if (!userId) {
+                alert("Foydalanuvchi ma'lumoti topilmadi. Botni qaytadan oching.");
+                return;
+            }
+
+            const saveBtn = document.querySelector('.save-pdf-btn');
+            saveBtn.innerText = "⏳ Tayyorlanmoqda...";
+            saveBtn.disabled = true;
+
+            // To'g'ridan-to'g'ri serverga POST so'rov yuboramiz
+            fetch('/create-pdf', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    userId: userId,
+                    fileName: fileName,
+                    pages: pages
+                })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    tg.close(); // Mini App yopilib, bot chatiga PDF kelib tushadi
+                } else {
+                    alert("Xatolik: " + (data.error || "Noma'lum xato"));
+                    saveBtn.innerText = "📥 PDF Yaratish va Yuborish";
+                    saveBtn.disabled = false;
+                }
+            })
+            .catch(err => {
+                alert("Tarmoq xatoligi: " + err);
+                saveBtn.innerText = "📥 PDF Yaratish va Yuborish";
+                saveBtn.disabled = false;
+            });
         }
 
         renderPages();
