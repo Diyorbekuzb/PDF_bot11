@@ -15,24 +15,18 @@ user_images = {}
 
 @bot.message_handler(commands=['start', 'help'])
 def send_welcome(message):
-    bot.reply_to(message, "Salom! Mini App orqali rasmlarni yuklang va tahrirlang yoki botga rasmlarni ketma-ket yuboring va /done ni bosing.")
+    bot.reply_to(message, "Salom! Mini App orqali rasmlarni yuklang va tahrirlang.")
 
 @bot.message_handler(content_types=['photo'])
 def handle_photos(message):
     user_id = message.from_user.id
     if user_id not in user_images:
         user_images[user_id] = []
-        
     file_info = bot.get_file(message.photo[-1].file_id)
     downloaded_file = bot.download_file(file_info.file_path)
-    
-    image_stream = io.BytesIO(downloaded_file)
-    image = Image.open(image_stream)
-    if image.mode != 'RGB':
-        image = image.convert('RGB')
-        
+    image = Image.open(io.BytesIO(downloaded_file)).convert('RGB')
     user_images[user_id].append(image)
-    bot.reply_to(message, f"Rasm qabul qilindi! Jami: {len(user_images[user_id])} ta. /done buyrug'ini bosing.")
+    bot.reply_to(message, f"Rasm qo'shildi! Jami: {len(user_images[user_id])} ta.")
 
 @bot.message_handler(commands=['done'])
 def generate_pdf(message):
@@ -40,16 +34,14 @@ def generate_pdf(message):
     if user_id not in user_images or not user_images[user_id]:
         bot.reply_to(message, "Siz hali rasm yubormadingiz!")
         return
-        
     images = user_images[user_id]
     pdf_stream = io.BytesIO()
     images[0].save(pdf_stream, format="PDF", save_all=True, append_images=images[1:])
     pdf_stream.seek(0)
-    
     bot.send_document(message.chat.id, document=pdf_stream, visible_file_name="hujjat.pdf")
     del user_images[user_id]
 
-# --- MINI APP'DAN KELGAN DATA'NI QABUL QILISH ---
+# --- MINI APP DAN KELGAN MA'LUMOTNI QABUL QILISH ---
 @bot.message_handler(content_types=['web_app_data'])
 def handle_web_app_data(message):
     try:
@@ -60,10 +52,10 @@ def handle_web_app_data(message):
             
         pages = data.get("pages", [])
         if not pages:
-            bot.reply_to(message, "Hech qanday rasm/sahifa tanlanmagan!")
+            bot.reply_to(message, "⚠️ Xatolik: Sahifalar bo'sh keldi!")
             return
 
-        bot.send_message(message.chat.id, "⏳ PDF tayyorlanmoqda, iltimos kuting...")
+        bot.send_message(message.chat.id, "⏳ PDF fayl yaratilmoqda, biroz kuting...")
 
         pdf_images = []
         for page in pages:
@@ -71,17 +63,12 @@ def handle_web_app_data(message):
             rotation = page.get("rotation", 0)
             
             if src.startswith("data:image"):
-                # Base64 rasmni o'qish
                 header, encoded = src.split(",", 1)
                 img_data = base64.b64decode(encoded)
-                img = Image.open(io.BytesIO(img_data))
+                img = Image.open(io.BytesIO(img_data)).convert('RGB')
             else:
                 continue
 
-            if img.mode != 'RGB':
-                img = img.convert('RGB')
-
-            # Burish operatsiyasi
             if rotation != 0:
                 img = img.rotate(-rotation, expand=True)
 
@@ -94,12 +81,12 @@ def handle_web_app_data(message):
 
             bot.send_document(message.chat.id, document=pdf_stream, visible_file_name=file_name)
         else:
-            bot.reply_to(message, "Rasmlarni qayta ishlashda xatolik yuz berdi.")
+            bot.reply_to(message, "⚠️ Rasmlarni o'qib bo'lmadi.")
 
     except Exception as e:
-        bot.reply_to(message, f"Xatolik yuz berdi: {str(e)}")
+        bot.reply_to(message, f"❌ Xatolik yuz berdi: {str(e)}")
 
-# --- AIOHTTP WEB SERVER ---
+# --- WEB SERVER ---
 async def handle_index(request):
     if os.path.exists('./static/index.html'):
         return web.FileResponse('./static/index.html')
