@@ -1,1 +1,68 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDF Tahrirvchi Mini App</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; background: #f4f4f9; margin: 0; padding: 15px; color: #333; }
+        h2 { text-align: center; color: #2c3e50; }
+        .section { background: #fff; padding: 15px; border-radius: 10px; margin-bottom: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        label { font-weight: bold; display: block; margin-bottom: 5px; }
+        input[type="text"] { width: 100%; padding: 10px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 5px; margin-bottom: 10px; }
+        .image-card { display: flex; align-items: center; justify-content: space-between; background: #fafafa; border: 1px solid #ddd; padding: 10px; border-radius: 8px; margin-bottom: 10px; }
+        .image-card span { font-size: 14px; word-break: break-all; max-width: 60%; }
+        button { background: #e74c3c; color: white; border: none; padding: 8px 12px; border-radius: 5px; cursor: pointer; }
+        button.add-btn { background: #2ecc71; width: 100%; padding: 12px; font-size: 16px; margin-top: 10px; }
+        button.save-btn { background: #3498db; width: 100%; padding: 14px; font-size: 16px; font-weight: bold; margin-top: 20px; }
+    </style>
+</head>
+<body>
 
+    <h2>📄 PDF Tahrirlovchi</h2>
+
+    <div class="section">
+        <label for="pdfName">Fayl nomi:</label>
+        <input type="text" id="pdfName" value="hujjat.pdf" placeholder="Fayl nomini kiriting...">
+    </div>
+
+    <div class="section">
+        <label>Sahifalar va Matnlar:</label>
+        <div id="pagesList">
+            <!-- Dinamik qo'shiladigan sahifalar -->
+            <div class="image-card">
+                <span>Sahifa 1 (Rasm)</span>
+                <input type="text" placeholder="Matn qo'shish..." style="width: 40%; margin: 0;">
+                <button onclick="removePage(this)">O'chirish</button>
+            </div>
+        </div>
+        <button class="add-btn" onclick="addPage()">+ Yangi sahifa qo'shish</button>
+    </div>
+
+    <button class="save-btn" onclick="savePdf()">PDF Yaratish</button>
+
+    <script>
+        let tg = window.Telegram.WebApp;
+        tg.expand();
+
+        function removePage(btn) {
+            btn.parentElement.remove();
+        }
+
+        function addPage() {
+            const list = document.getElementById('pagesList');
+            const div = document.createElement('div');
+            div.className = 'image-card';
+            div.innerHTML = `<span>Sahifa</span> <input type="text" placeholder="Matn qo'shish..." style="width: 40%; margin: 0;"> <button onclick="removePage(this)">O'chirish</button>`;
+            list.appendChild(div);
+        }
+
+        function savePdf() {
+            const fileName = document.getElementById('pdfName').value;
+            alert("So'rov yuborildi! Fayl nomi: " + fileName);
+            tg.close();
+        }
+    </script>
+</body>
+</html>
